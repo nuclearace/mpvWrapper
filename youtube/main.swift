@@ -9,9 +9,10 @@
 import Foundation
 
 enum Arg {
-    case volume(Int)
     case audioOnly
     case url(String)
+    case video
+    case volume(Int)
     
     var cString: [CChar] {
         switch self {
@@ -34,8 +35,8 @@ enum Arg {
         }
         
         switch option {
-        case "-a":
-            return .audioOnly
+        case "-vi":
+            return .video
         case "-v=":
             return .volume(Int(string[string.startIndex.advancedBy(3)..<string.endIndex])!)
         default:
@@ -57,7 +58,7 @@ func cStringToUnsafePointer(s: [CChar]) -> UnsafeMutablePointer<Int8> {
 let arguments = Process.arguments.dropFirst()
 var mpv = "/usr/local/bin/mpv".cStringUsingEncoding(NSUTF8StringEncoding)!
 var volume = Arg.volume(50)
-var audioOnly = Arg.audioOnly
+var audioOnly: Arg? = Arg.audioOnly
 var urls = [String]()
 
 for arg in arguments {
@@ -66,6 +67,8 @@ for arg in arguments {
     switch a {
     case .audioOnly:
         audioOnly = a
+    case .video:
+        audioOnly = nil
     case .volume:
         volume = a
     case let .url(urlString):
@@ -73,11 +76,12 @@ for arg in arguments {
     }
 }
 
-let audioOnlyCString = audioOnly.cString
+let audioOnlyCString = audioOnly?.cString ?? []
 let volumeCString = volume.cString
 var urlsCount = urls.map({ $0.cStringUsingEncoding(NSUTF8StringEncoding)!.count }).reduce(0, combine: +)
-var args = unsafeBitCast(malloc(strideof(Int8.self) * (mpv.count + audioOnlyCString.count + urlsCount + volumeCString.count)),
-                         UnsafeMutablePointer<UnsafeMutablePointer<Int8>>.self)
+let size = strideof(Int8.self) * (mpv.count + audioOnlyCString.count + urlsCount + volumeCString.count)
+var args = UnsafeMutablePointer<UnsafeMutablePointer<Int8>>.alloc(size)
+
 args[0] = cStringToUnsafePointer(mpv)
 args[1] = cStringToUnsafePointer(volumeCString)
 args[2] = cStringToUnsafePointer(audioOnlyCString)

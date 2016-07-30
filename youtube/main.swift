@@ -35,6 +35,8 @@ enum Arg {
         }
         
         switch option {
+        case "-a":
+            return .audioOnly
         case "-vi":
             return .video
         case "-v=":
@@ -57,7 +59,7 @@ func cStringToUnsafePointer(s: [CChar]) -> UnsafeMutablePointer<Int8> {
 
 let arguments = Process.arguments.dropFirst()
 var mpv = "/usr/local/bin/mpv".cStringUsingEncoding(NSUTF8StringEncoding)!
-var volume = Arg.volume(50)
+var volume = Arg.volume(30)
 var audioOnly: Arg? = Arg.audioOnly
 var urls = [String]()
 

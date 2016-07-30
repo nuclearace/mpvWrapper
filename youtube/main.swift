@@ -8,6 +8,36 @@
 
 import Foundation
 
+enum Arg {
+    case volume(Int)
+    case audioOnly(Bool)
+    case url(String)
+    
+    var cString: [CChar] {
+        switch self {
+        case let .audioOnly(ao):
+            return (ao ? "--no-video" : "").cStringUsingEncoding(NSUTF8StringEncoding)!
+        case let .volume(vol):
+            return "--volume=\(vol)".cStringUsingEncoding(NSUTF8StringEncoding)!
+        default:
+            return []
+        }
+    }
+    
+    static func parse(string: String) -> Arg {
+        let option = string[string.startIndex...string.startIndex.advancedBy(2)]
+        
+        switch option {
+        case "-a=":
+            return .audioOnly(string[string.startIndex.advancedBy(3)..<string.endIndex] == "y")
+        case "-v=":
+            return .volume(Int(string[string.startIndex.advancedBy(3)..<string.endIndex])!)
+        default:
+            return .url(string)
+        }
+    }
+}
+
 func parseVideoArg(arg: String) -> Bool {
     return arg == "y"
 }
@@ -22,36 +52,34 @@ func cStringToUnsafePointer(s: [CChar]) -> UnsafeMutablePointer<Int8> {
     return pointer
 }
 
+let arguments = Process.arguments.dropFirst()
 var mpv = "/usr/local/bin/mpv".cStringUsingEncoding(NSUTF8StringEncoding)!
-var volume = 50
-var video = false
-var url = Process.arguments[Process.arguments.count - 1]
+var volume = Arg.volume(50)
+var audioOnly = Arg.audioOnly(true)
+var url = ""
 
-for i in 0..<Process.arguments.count {
-    switch i {
-    case 0:
-        continue
-    case 1:
-        video = parseVideoArg(Process.arguments[1])
-        fallthrough
-    case 1:
-        volume = Int(Process.arguments[1]) ?? 50
-    case 2 where Int(Process.arguments[2]) != nil:
-        volume = Int(Process.arguments[2])!
-    default:
-        continue
+for arg in arguments {
+    let a = Arg.parse(arg)
+    
+    switch a {
+    case .audioOnly:
+        audioOnly = a
+    case .volume:
+        volume = a
+    case let .url(urlString):
+        url += urlString + " "
     }
 }
 
-let videoCString = (video ? "" : "--no-video").cStringUsingEncoding(NSUTF8StringEncoding)!
-let volumeCString =  "--volume=\(volume)".cStringUsingEncoding(NSUTF8StringEncoding)!
+let audioOnlyCString = audioOnly.cString
+let volumeCString = volume.cString
 let urlCString = url.cStringUsingEncoding(NSUTF8StringEncoding)!
-var args = unsafeBitCast(malloc(strideof(Int8.self) * (mpv.count + videoCString.count + urlCString.count + volumeCString.count)),
+var args = unsafeBitCast(malloc(strideof(Int8.self) * (mpv.count + audioOnlyCString.count + urlCString.count + volumeCString.count)),
                          UnsafeMutablePointer<UnsafeMutablePointer<Int8>>.self)
 
 args[0] = cStringToUnsafePointer(mpv)
 args[1] = cStringToUnsafePointer(volumeCString)
-args[2] = cStringToUnsafePointer(videoCString)
+args[2] = cStringToUnsafePointer(audioOnlyCString)
 args[3] = cStringToUnsafePointer(urlCString)
 
 execv(&mpv, args)

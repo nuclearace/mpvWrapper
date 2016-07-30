@@ -10,13 +10,13 @@ import Foundation
 
 enum Arg {
     case volume(Int)
-    case audioOnly(Bool)
+    case audioOnly
     case url(String)
     
     var cString: [CChar] {
         switch self {
-        case let .audioOnly(ao):
-            return (ao ? "--no-video" : "").cStringUsingEncoding(NSUTF8StringEncoding)!
+        case .audioOnly:
+            return "--no-video".cStringUsingEncoding(NSUTF8StringEncoding)!
         case let .volume(vol):
             return "--volume=\(vol)".cStringUsingEncoding(NSUTF8StringEncoding)!
         default:
@@ -25,11 +25,17 @@ enum Arg {
     }
     
     static func parse(string: String) -> Arg {
-        let option = string[string.startIndex...string.startIndex.advancedBy(2)]
+        let option: String
+        
+        if string.containsString("=") {
+            option = string[string.startIndex...string.startIndex.advancedBy(2)]
+        } else {
+            option = string
+        }
         
         switch option {
-        case "-a=":
-            return .audioOnly(string[string.startIndex.advancedBy(3)..<string.endIndex] == "y")
+        case "-a":
+            return .audioOnly
         case "-v=":
             return .volume(Int(string[string.startIndex.advancedBy(3)..<string.endIndex])!)
         default:
@@ -51,7 +57,7 @@ func cStringToUnsafePointer(s: [CChar]) -> UnsafeMutablePointer<Int8> {
 let arguments = Process.arguments.dropFirst()
 var mpv = "/usr/local/bin/mpv".cStringUsingEncoding(NSUTF8StringEncoding)!
 var volume = Arg.volume(50)
-var audioOnly = Arg.audioOnly(true)
+var audioOnly = Arg.audioOnly
 var urls = [String]()
 
 for arg in arguments {

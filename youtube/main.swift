@@ -80,7 +80,7 @@ for arg in arguments {
 
 let audioOnlyCString = audioOnly?.cString ?? []
 let volumeCString = volume.cString
-var args = UnsafeMutablePointer<UnsafeMutablePointer<Int8>>.alloc(strideof(UnsafeMutablePointer<Int8>.self) * (3 + urls.count))
+var args = UnsafeMutablePointer<UnsafeMutablePointer<Int8>>.alloc(3 + urls.count)
 
 args[0] = cStringToUnsafePointer(mpv)
 args[1] = cStringToUnsafePointer(volumeCString)

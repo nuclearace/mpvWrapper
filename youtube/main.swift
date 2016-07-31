@@ -80,7 +80,7 @@ for arg in arguments {
 
 let audioOnlyCString = audioOnly?.cString ?? []
 let volumeCString = volume.cString
-var urlsCount = urls.map({ $0.cStringUsingEncoding(NSUTF8StringEncoding)!.count }).reduce(0, combine: +)
+let urlsCount = urls.map({ $0.cStringUsingEncoding(NSUTF8StringEncoding)!.count }).reduce(0, combine: +)
 let size = strideof(Int8.self) * (mpv.count + audioOnlyCString.count + urlsCount + volumeCString.count)
 var args = UnsafeMutablePointer<UnsafeMutablePointer<Int8>>.alloc(size)
 
